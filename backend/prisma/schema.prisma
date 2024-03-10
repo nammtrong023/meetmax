@@ -1,0 +1,146 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+model User {
+  id              String   @id @default(uuid()) @map("_id")
+  name            String
+  email           String   @unique
+  password        String?
+  birth           DateTime?
+  gender          Gender?
+  bio             String?
+  refreshToken    String? 
+  profileImage    String? @default("/profile-placeholder.jpg") 
+  coverImage      String? @default("/cover-placeholder.png") 
+  followingIds    String[]
+  emailVerified   Boolean?
+  google_id       String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  conversationIds String[] 
+  conversations Conversation[] @relation(fields: [conversationIds], references: [id])
+
+  posts         Post[]
+  comments      Comment[]
+  codes         Code[]
+  messages      Message[]
+  notifications Notification[]
+}
+
+
+model Conversation {
+  id             String   @id @default(uuid()) @map("_id")
+  createdAt      DateTime @default(now())
+  lastMessageAt  DateTime @default(now())
+  
+  messagesIds    String[] 
+  messages       Message[]
+
+  userIds        String[] 
+  users          User[] @relation(fields: [userIds], references: [id])
+}
+
+model Message {
+  id          String   @id @default(uuid()) @map("_id")
+  content     String
+  image       String?
+  createdAt   DateTime @default(now())
+
+  conversationId String 
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  senderId String
+  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model Post {
+  id          String   @id @default(uuid()) @map("_id")
+  images      Image[]  
+  title        String?
+  likedIds    String[]    
+  createdAt   DateTime    @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  userId   String      
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  comments    Comment[]
+}
+
+model Image {
+  id         String   @id @default(uuid()) @map("_id")
+  url        String
+  postId     String 
+  post       Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Comment {
+  id                 String   @id @default(uuid()) @map("_id")
+  content            String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+
+  userId             String 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  postId             String 
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+}
+
+enum NotiType {
+  LIKE
+  COMMENT
+  MESSAGE
+  FOLLOW
+}
+
+model Notification {
+  id                 String   @id @default(uuid()) @map("_id")
+  message            String
+  type               NotiType
+  hasSeen            Boolean @default(false)
+  postId             String?
+  conversationId     String?
+  senderId           String   
+  createdAt          DateTime @default(now())
+
+  receiverId             String   
+  receiver User @relation(fields: [receiverId], references: [id], onDelete: Cascade)
+}
+
+enum CodeType {
+  OTP
+  RESET
+}
+
+model Code {
+  id             String   @id @default(uuid()) @map("_id")
+  code           String
+  type           CodeType
+  createdAt      DateTime @default(now())
+  expiredAt      DateTime
+  
+  userId         String
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
